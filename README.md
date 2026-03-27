@@ -44,9 +44,18 @@ pip install playwright
 playwright install chromium
 ```
 
-> 如果你的 AstrBot 使用虚拟环境，请在对应环境中执行。
+同时，视频处理链路依赖 `ffmpeg`，请确保运行环境中已安装。
+
+安装命令（Ubuntu / Debian）：
+
+```bash
+apt update
+apt install -y ffmpeg
+```
+
+> 如果你的 AstrBot 使用虚拟环境，请在对应环境中执行 Playwright 安装命令。
 >
-> 同时请确保运行环境中的 `ffmpeg` 可用；如果 `ffmpeg` 不可用，视频下载后的抽帧与后续处理可能失败。
+> 如果 `ffmpeg` 不可用，视频下载后的抽帧与后续处理可能失败。
 
 ## ⚙️ 配置说明
 
