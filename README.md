@@ -25,7 +25,7 @@
 
 ## 📦 安装
 
-在 AstrBot Dashboard 中安装插件，填入仓库地址：
+在 AstrBot 中安装插件，填入仓库地址：
 
 ```
 https://github.com/TaiLaaa/astrbot_plugin_video_summary
@@ -33,9 +33,22 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 
 > ⚠️ **安装后请重启一次 AstrBot**，确保插件和配置项正确加载。
 
+## 🖼️ T2I / Playwright 说明
+
+如果你需要使用 **T2I 输出**，需要额外安装 Playwright 及 Chromium。
+
+安装命令：
+
+```bash
+pip install playwright
+playwright install chromium
+```
+
+> 如果你的 AstrBot 使用虚拟环境，请在对应环境中执行。
+
 ## ⚙️ 配置说明
 
-安装后在 Dashboard 的插件配置页面中设置：
+安装后在 AstrBot 的插件配置页面中设置：
 
 | 配置项 | 说明 |
 |--------|------|
@@ -115,6 +128,7 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 - 视觉能力弱或不支持视觉的模型，会走降级逻辑
 - 视频平台能否正常下载，会直接影响总结效果
 - ffmpeg / 浏览器环境异常时，关键帧链路可能失败
+- 如果启用 T2I 输出但未安装 Playwright，相关渲染能力将不可用
 
 ## 📝 使用建议
 
