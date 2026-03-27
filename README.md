@@ -44,7 +44,7 @@ pip install playwright
 playwright install chromium
 ```
 
-同时，视频处理链路依赖 `ffmpeg`，请确保运行环境中已安装。
+`ffmpeg` 也需要安装，不然插件无法正常处理视频内容，也就无法完成视频理解与总结。
 
 安装命令（Ubuntu / Debian）：
 
