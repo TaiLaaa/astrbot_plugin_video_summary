@@ -1,0 +1,145 @@
+{
+  "summary_mode": {
+    "description": "总结模式",
+    "type": "string",
+    "options": [
+      "normal",
+      "full"
+    ],
+    "labels": [
+      "普通模式",
+      "完整模式"
+    ],
+    "default": "normal",
+    "hint": "二选一互斥：普通模式偏省钱，完整模式会下载视频并抽关键帧做更真实的内容理解。"
+  },
+  "normal_provider_id": {
+    "description": "普通模式 Provider",
+    "type": "string",
+    "default": "",
+    "_special": "select_provider",
+    "hint": "留空则使用 AstrBot 当前默认 Provider。"
+  },
+  "full_provider_id": {
+    "description": "完整模式 Provider",
+    "type": "string",
+    "default": "",
+    "_special": "select_provider",
+    "hint": "建议选择支持图像理解的强模型，如 Gemini / GPT 系列。"
+  },
+  "persona_mode": {
+    "description": "人格使用方式",
+    "type": "string",
+    "options": [
+      "none",
+      "default",
+      "current",
+      "custom"
+    ],
+    "labels": [
+      "不使用人格",
+      "使用默认人格",
+      "使用当前聊天人格",
+      "使用指定人格"
+    ],
+    "default": "none",
+    "hint": "默认建议“不使用人格”或“使用当前聊天人格”。"
+  },
+  "persona_id": {
+    "description": "指定 AstrBot 人格模板",
+    "type": "string",
+    "default": "",
+    "_special": "select_persona",
+    "hint": "仅当“人格使用方式”选“使用指定人格”时生效。"
+  },
+  "normal_prompt": {
+    "description": "普通模式补充提示词",
+    "type": "text",
+    "default": "请像当前人格在聊天里自然转述一样总结这个视频。先用一段自然、顺口、不端着的话概括主要内容；如果有必要，再补充 2-4 条关键点。不要写成固定模板，不要公文腔，不要机械地使用‘该视频’‘核心内容如下’这类表达。信息不足时直接说不确定，不要硬编。",
+    "hint": "普通模式强调快速看懂，保持简洁。"
+  },
+  "full_prompt": {
+    "description": "完整模式补充提示词",
+    "type": "text",
+    "default": "请以当前人格的自然口吻，尽可能完整但依然像人说话一样总结视频内容。优先先给一段连贯的整体概括，再按需要补充 3-6 条重点、变化、结论或价值判断。不要写成审计报告、说明书或僵硬四段式模板；允许带一点人格化语气，但不要偏离事实。信息不足时明确说明，不要虚构。",
+    "hint": "完整模式强调更完整的分析、影响和价值判断。"
+  },
+  "t2i_output": {
+    "description": "启用 T2I 风格排版",
+    "type": "bool",
+    "default": false,
+    "hint": "开启后输出会走更适合渲染/截图阅读的 T2I 风格短段排版；关闭则使用普通分段式总结。"
+  },
+  "ffmpeg_bin": {
+    "description": "ffmpeg 路径（高级）",
+    "type": "string",
+    "default": "/usr/bin/ffmpeg",
+    "hint": "AstrBot 容器内默认可用 /usr/bin/ffmpeg。"
+  },
+  "full_frame_count": {
+    "description": "完整模式切片量",
+    "type": "int",
+    "default": 8,
+    "slider": {
+      "min": 3,
+      "max": 12,
+      "step": 1
+    },
+    "hint": "切得多一点，速度更慢、成本更高，但看得更全、总结更完整。"
+  },
+  "normal_frame_count": {
+    "description": "普通模式切片量",
+    "type": "int",
+    "default": 3,
+    "slider": {
+      "min": 2,
+      "max": 4,
+      "step": 1
+    },
+    "hint": "切得少一点，速度更快、更省钱，但可能漏信息。"
+  },
+  "max_duration_seconds": {
+    "description": "允许处理的最大视频时长（秒）",
+    "type": "int",
+    "default": 3600,
+    "slider": {
+      "min": 60,
+      "max": 14400,
+      "step": 60
+    },
+    "hint": "超过该时长将拒绝处理，避免花费失控。"
+  },
+  "context_ttl_seconds": {
+    "description": "视频上下文保留时长（秒）",
+    "type": "int",
+    "default": 900,
+    "slider": {
+      "min": 60,
+      "max": 7200,
+      "step": 60
+    },
+    "hint": "解析完成后，最近视频总结会在这个时间内参与后续追问。默认 15 分钟。"
+  },
+  "context_max_entries": {
+    "description": "每个会话保留的视频上下文条数",
+    "type": "int",
+    "default": 1,
+    "slider": {
+      "min": 1,
+      "max": 5,
+      "step": 1
+    },
+    "hint": "默认只保留最近 1 条视频结果，避免旧视频污染后续对话。"
+  },
+  "followup_max_paragraphs": {
+    "description": "后续回复最大段数",
+    "type": "int",
+    "default": 2,
+    "slider": {
+      "min": 1,
+      "max": 4,
+      "step": 1
+    },
+    "hint": "只影响视频解析后的后续回复/追问，不影响完整模式首轮总结。"
+  }
+}

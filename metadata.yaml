@@ -1,0 +1,6 @@
+name: astrbot_plugin_video_summary
+display_name: 视频链接总结
+desc: 通过视频链接提取内容并生成 AI 总结，支持普通/完整模式与 AstrBot 人格输出
+version: v0.1.0
+author: TaiLaaa
+repo: https://github.com/TaiLaaa/astrbot_plugin_video_summary
