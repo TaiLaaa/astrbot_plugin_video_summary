@@ -35,7 +35,7 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 
 ## 🖼️ T2I / Playwright 说明
 
-如果你需要使用 **T2I 输出**，需要额外安装 Playwright 及 Chromium。
+如果你需要使用 **T2I 输出**，就需要额外安装 Playwright 及 Chromium，不然相关渲染能力无法使用。
 
 安装命令：
 
