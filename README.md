@@ -29,6 +29,128 @@ AstrBot 视频链接总结插件。
 - QQ 视频页：`qq.com/x/page/`
 - 常见视频直链：`.mp4` `.m3u8` `.mov` `.mkv` `.webm`
 
+## 安装说明
+
+## 1. 环境要求
+
+建议先确认以下环境可用：
+
+- AstrBot
+- Python 3.12+
+- `ffmpeg`
+- Playwright Chromium
+- `yt-dlp`
+
+Ubuntu/Debian 可先安装系统依赖：
+
+```bash
+apt update
+apt install -y ffmpeg python3 python3-pip
+```
+
+## 2. 安装 Python 依赖
+
+如果你的 AstrBot 环境还没有这些包，执行：
+
+```bash
+pip install yt-dlp playwright
+```
+
+安装 Playwright 浏览器：
+
+```bash
+playwright install chromium
+```
+
+如果你的 AstrBot 使用虚拟环境，请在对应 venv 里执行以上命令。
+
+## 3. 部署插件
+
+进入 AstrBot 插件目录：
+
+```bash
+cd /root/astrbot/data/plugins
+```
+
+拉取仓库：
+
+```bash
+git clone https://github.com/TaiLaaa/astrbot_plugin_video_summary.git
+```
+
+最终目录应类似：
+
+```text
+/root/astrbot/data/plugins/astrbot_plugin_video_summary
+```
+
+## 4. 补充依赖说明
+
+本仓库默认**不提交 `vendor/` 目录**，避免 GitHub 推送时触发密钥扫描拦截。
+
+因此运行环境需要满足下面二选一：
+
+### 方案 A：直接安装到 Python 环境（推荐）
+
+```bash
+pip install yt-dlp
+```
+
+### 方案 B：手动放入 `vendor/`
+
+如果你坚持离线/vendor 方案，也可以自行把 `yt_dlp` 放到插件目录下的 `vendor/` 中。
+
+例如：
+
+```text
+astrbot_plugin_video_summary/
+└── vendor/
+    └── yt_dlp/
+```
+
+推荐优先使用 **方案 A**，更简单。
+
+## 5. 配置插件
+
+将插件放入目录后，在 AstrBot 管理界面中加载/启用插件。
+
+然后按你的模型环境配置以下内容：
+
+- 普通模式 provider
+- 完整模式 provider
+- `ffmpeg_bin` 路径
+- 自定义提示词（如需要）
+
+如果服务器上的 ffmpeg 不在默认位置，可手动指定：
+
+```text
+/usr/bin/ffmpeg
+```
+
+## 6. 重启或重载 AstrBot
+
+完成安装后，重启 AstrBot，或在管理界面重载插件。
+
+如果你是 Docker 部署，通常可直接重启 AstrBot 容器。
+
+## 7. 验证安装
+
+安装完成后，可直接发送：
+
+```text
+/视频总结 https://www.bilibili.com/video/BV1xx411c7mD
+```
+
+如果能正常返回总结结果，说明插件已成功加载。
+
+如未生效，优先检查：
+
+- 插件目录名是否正确
+- 依赖是否安装成功
+- `ffmpeg` 是否可执行
+- Playwright Chromium 是否已安装
+- 当前 provider 是否可用
+
 ## 触发方式
 
 ### 1. 指令触发
@@ -78,28 +200,6 @@ AstrBot 视频链接总结插件。
 - 先客观理解，再人格化输出
 - 输出更完整
 - 耗时和成本更高
-
-## 依赖环境
-
-建议环境：
-
-- AstrBot
-- Python 3.12+
-- `ffmpeg`
-- Playwright Chromium
-- `yt-dlp`
-
-安装示例：
-
-```bash
-pip install yt-dlp playwright
-```
-
-如果需要浏览器运行环境：
-
-```bash
-playwright install chromium
-```
 
 ## 文件结构
 
