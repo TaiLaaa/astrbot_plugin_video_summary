@@ -45,6 +45,8 @@ playwright install chromium
 ```
 
 > 如果你的 AstrBot 使用虚拟环境，请在对应环境中执行。
+>
+> 同时请确保运行环境中的 `ffmpeg` 可用；如果 `ffmpeg` 不可用，视频下载后的抽帧与后续处理可能失败。
 
 ## ⚙️ 配置说明
 
