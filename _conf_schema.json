@@ -112,13 +112,13 @@
   "context_ttl_seconds": {
     "description": "视频上下文保留时长（秒）",
     "type": "int",
-    "default": 900,
+    "default": 600,
     "slider": {
       "min": 60,
       "max": 7200,
       "step": 60
     },
-    "hint": "解析完成后，最近视频总结会在这个时间内参与后续追问。默认 15 分钟。"
+    "hint": "解析完成后，最近视频总结会在这个时间内参与后续追问。默认 10 分钟；超过 10 分钟无回应时，不再继续接解析后的聊天内容。"
   },
   "context_max_entries": {
     "description": "每个会话保留的视频上下文条数",

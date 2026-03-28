@@ -1,8 +1,11 @@
 import asyncio
 import html
+import importlib
 import math
 import os
 import re
+import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -14,25 +17,33 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star
 from astrbot.core.message.components import Image
 from astrbot.core.provider.provider import Provider
-from playwright.async_api import async_playwright
 
 BASE_DIR = Path(__file__).resolve().parent
 VENDOR_DIR = BASE_DIR / "vendor"
 if str(VENDOR_DIR) not in sys.path:
     sys.path.insert(0, str(VENDOR_DIR))
 
-import yt_dlp
-
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 
 
 class VideoSummaryPlugin(Star):
+    _shared_dependency_bootstrap_lock: asyncio.Lock | None = None
+    _shared_dependency_bootstrap_done = False
+
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config or {}
         self.ffmpeg_bin = str(self.config.get("ffmpeg_bin", "/usr/bin/ffmpeg") or "/usr/bin/ffmpeg")
         self._browser = None
         self._recent_video_contexts: dict[str, dict[str, Any]] = {}
+        self._yt_dlp_module = None
+        self._async_playwright_factory = None
+        self._dependency_bootstrap_error = ""
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._ensure_runtime_dependencies())
+        except RuntimeError:
+            pass
 
     def _get_arg(self, message_str: str) -> str:
         if not message_str:
@@ -53,6 +64,130 @@ class VideoSummaryPlugin(Star):
 
     def _use_t2i_output(self) -> bool:
         return bool(self.config.get("t2i_output", False))
+
+    def _python_executable(self) -> str:
+        return sys.executable or "python"
+
+    def _fonts_dir(self) -> Path:
+        return BASE_DIR / "assets" / "fonts"
+
+    def _bundled_font_faces_css(self) -> str:
+        fonts_dir = self._fonts_dir()
+        if not fonts_dir.exists():
+            return ""
+        rules = []
+        for name in (
+            "Lolita-2.ttf",
+            "萝莉体第二版.ttf",
+            "萝莉体 第二版.ttf",
+            "NotoSansSC-Regular.otf",
+            "NotoSansSC-Regular.ttf",
+            "SourceHanSansSC-Regular.otf",
+        ):
+            path = fonts_dir / name
+            if not path.exists():
+                continue
+            family = path.stem.replace(" ", "")
+            rules.append(
+                "@font-face {"
+                f"font-family:'{family}';"
+                f"src:url('file://{path.as_posix()}') format('truetype');"
+                "font-display:swap;"
+                "}"
+            )
+        return "\n".join(rules)
+
+    def _preferred_font_stack(self) -> str:
+        custom_families = []
+        for name in (
+            "Lolita-2",
+            "萝莉体第二版",
+            "萝莉体 第二版",
+            "NotoSansSC-Regular",
+            "SourceHanSansSC-Regular",
+        ):
+            if (self._fonts_dir() / f"{name}.ttf").exists() or (self._fonts_dir() / f"{name}.otf").exists():
+                custom_families.append(f'"{name}"')
+        fallback = ['"Heiti TC"', '"PingFang SC"', '"Microsoft YaHei"', '"Noto Sans SC"', 'sans-serif']
+        return ",".join(custom_families + fallback)
+
+    async def _run_subprocess(self, *args: str) -> tuple[int, str]:
+        proc = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        out, _ = await proc.communicate()
+        return proc.returncode, (out or b"").decode("utf-8", errors="ignore")
+
+    async def _ensure_python_package(self, import_name: str, package_name: str) -> tuple[bool, str]:
+        try:
+            return bool(importlib.import_module(import_name)), ""
+        except Exception:
+            pass
+        code, output = await self._run_subprocess(self._python_executable(), "-m", "pip", "install", package_name)
+        if code == 0:
+            importlib.invalidate_caches()
+            try:
+                return bool(importlib.import_module(import_name)), ""
+            except Exception as e:
+                return False, str(e)
+        return False, output.strip()[-500:]
+
+    async def _ensure_playwright_browsers(self) -> tuple[bool, str]:
+        code, output = await self._run_subprocess(self._python_executable(), "-m", "playwright", "install", "chromium")
+        return code == 0, output.strip()[-500:]
+
+    async def _ensure_runtime_dependencies(self):
+        if self._yt_dlp_module and self._async_playwright_factory:
+            return
+        lock = self.__class__._shared_dependency_bootstrap_lock
+        if lock is None:
+            lock = asyncio.Lock()
+            self.__class__._shared_dependency_bootstrap_lock = lock
+        async with lock:
+            if self.__class__._shared_dependency_bootstrap_done and self._yt_dlp_module and self._async_playwright_factory:
+                return
+            errors = []
+            ok, detail = await self._ensure_python_package("yt_dlp", "yt-dlp")
+            if ok:
+                self._yt_dlp_module = importlib.import_module("yt_dlp")
+            else:
+                errors.append(f"yt-dlp 自动安装失败: {detail}")
+            ok, detail = await self._ensure_python_package("playwright.async_api", "playwright")
+            if ok:
+                self._async_playwright_factory = importlib.import_module("playwright.async_api").async_playwright
+                browser_ok, browser_detail = await self._ensure_playwright_browsers()
+                if not browser_ok:
+                    errors.append(f"Chromium 自动安装失败: {browser_detail}")
+            else:
+                errors.append(f"playwright 自动安装失败: {detail}")
+            self._dependency_bootstrap_error = "；".join([e for e in errors if e])
+            self.__class__._shared_dependency_bootstrap_done = True
+
+    async def _get_yt_dlp(self):
+        if not self._yt_dlp_module:
+            await self._ensure_runtime_dependencies()
+            if not self._yt_dlp_module:
+                try:
+                    self._yt_dlp_module = importlib.import_module("yt_dlp")
+                except Exception:
+                    pass
+        if not self._yt_dlp_module:
+            raise RuntimeError(self._dependency_bootstrap_error or "未能自动安装 yt-dlp")
+        return self._yt_dlp_module
+
+    async def _get_async_playwright(self):
+        if not self._async_playwright_factory:
+            await self._ensure_runtime_dependencies()
+            if not self._async_playwright_factory:
+                try:
+                    self._async_playwright_factory = importlib.import_module("playwright.async_api").async_playwright
+                except Exception:
+                    pass
+        if not self._async_playwright_factory:
+            raise RuntimeError(self._dependency_bootstrap_error or "未能自动安装 playwright")
+        return self._async_playwright_factory
 
     def _format_style_instruction(self) -> str:
         if self._use_t2i_output():
@@ -217,14 +352,20 @@ class VideoSummaryPlugin(Star):
     async def _ensure_browser(self):
         if self._browser and self._browser.is_connected():
             return self._browser
+        async_playwright = await self._get_async_playwright()
         pw = await async_playwright().start()
         executable_path = None
         candidates = [
             "/root/astrbot/ms-playwright/chromium-1208/chrome-linux64/chrome",
             "/root/astrbot/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-linux64/chrome-headless-shell",
+            shutil.which("chromium"),
+            shutil.which("chromium-browser"),
+            shutil.which("google-chrome"),
+            shutil.which("chrome"),
+            shutil.which("msedge"),
         ]
         for path in candidates:
-            if os.path.exists(path):
+            if path and os.path.exists(path):
                 executable_path = path
                 break
         self._browser = await pw.chromium.launch(
@@ -238,13 +379,16 @@ class VideoSummaryPlugin(Star):
         title = html.escape(str(meta.get("title", "视频总结") or "视频总结"))
         body = html.escape(text or "").replace("\n", "<br>")
         mode_label = "普通模式" if self._mode() == "normal" else "完整模式"
+        font_faces_css = self._bundled_font_faces_css()
+        font_stack = self._preferred_font_stack()
         return f'''<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
-body {{ margin:0; background:#f3f5f7; font-family:"萝莉体 第二版","Heiti TC","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif; }}
+{font_faces_css}
+body {{ margin:0; background:#f3f5f7; font-family:{font_stack}; }}
 .card {{ width:720px; margin:0; padding:32px 34px 30px; box-sizing:border-box; background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%); color:#0f172a; }}
 .badge {{ display:inline-block; padding:6px 12px; border-radius:999px; background:#e0f2fe; color:#0369a1; font-size:18px; font-weight:700; margin-bottom:18px; }}
-.title {{ font-size:30px; line-height:1.35; font-weight:800; margin-bottom:18px; word-break:break-word; font-family:"萝莉体 第二版","Heiti TC","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif; }}
-.body {{ font-size:24px; line-height:1.75; color:#1e293b; word-break:break-word; white-space:normal; font-family:"萝莉体 第二版","Heiti TC","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif; }}
+.title {{ font-size:30px; line-height:1.35; font-weight:800; margin-bottom:18px; word-break:break-word; font-family:{font_stack}; }}
+.body {{ font-size:24px; line-height:1.75; color:#1e293b; word-break:break-word; white-space:normal; font-family:{font_stack}; }}
 .footer {{ margin-top:22px; font-size:16px; color:#64748b; }}
 </style></head><body><div class="card"><div class="badge">{mode_label}</div><div class="title">{title}</div><div class="body">{body}</div><div class="footer">视频链接总结</div></div></body></html>'''
 
@@ -333,6 +477,7 @@ body {{ margin:0; background:#f3f5f7; font-family:"萝莉体 第二版","Heiti T
 
     async def _extract_video_meta(self, url: str) -> dict[str, Any]:
         loop = asyncio.get_running_loop()
+        yt_dlp = await self._get_yt_dlp()
 
         def _run():
             with yt_dlp.YoutubeDL({"skip_download": True, "quiet": True, "no_warnings": True}) as ydl:
@@ -354,6 +499,7 @@ body {{ margin:0; background:#f3f5f7; font-family:"萝莉体 第二版","Heiti T
     async def _download_video(self, url: str, workdir: str) -> str:
         loop = asyncio.get_running_loop()
         output_tpl = os.path.join(workdir, "video.%(ext)s")
+        yt_dlp = await self._get_yt_dlp()
 
         def _run():
             opts = {
@@ -726,7 +872,7 @@ body {{ margin:0; background:#f3f5f7; font-family:"萝莉体 第二版","Heiti T
         return f"{sid}:{uid}"
 
     def _context_ttl_seconds(self) -> int:
-        return max(60, int(self.config.get("context_ttl_seconds", 900) or 900))
+        return max(60, int(self.config.get("context_ttl_seconds", 600) or 600))
 
     def _context_max_entries(self) -> int:
         return max(1, min(5, int(self.config.get("context_max_entries", 1) or 1)))
