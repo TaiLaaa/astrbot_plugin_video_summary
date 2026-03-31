@@ -38,60 +38,31 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 ## 🖼️ T2I / Playwright 说明
 
 插件安装后：
-- **默认开启 T2I 输出**
+- **默认关闭 T2I 输出**
+- 一旦你开启 `T2I 输出`，插件会自动尝试安装 T2I 所需依赖
 - 会优先自动加载 `assets/fonts/` 目录下自带的 `.ttf/.otf` 字体
 - 当前仓库已内置一套字体：`assets/fonts/loli.ttf`
 
-也就是说，**只要运行环境本身具备 Playwright / Chromium 依赖，装完插件后就会自动优先使用插件自带字体渲染**，不需要再手动改模板里的字体名。
+也就是说，目标是做到：**用户安装插件后，只需要在配置里打开 T2I，就能直接把依赖、浏览器和字体一起补齐并投入使用**。
 
-如果你需要使用 **T2I 输出**，就需要额外安装 Playwright 及 Chromium，不然相关渲染能力无法使用。
+插件会自动处理的内容包括：
+- `yt-dlp`
+- `playwright`
+- `playwright install chromium`
+- `ffmpeg`
+- Chromium 常见系统依赖
+- 中文字库 `fonts-noto-cjk`
 
-安装命令：
+当前自动安装系统依赖的实现基于 `apt-get`，因此最适合：
+- Debian
+- Ubuntu
+- 常见 Debian/Ubuntu 系 Docker 容器
 
-```bash
-pip install playwright
-playwright install chromium
-```
+如果你的运行环境不是这一类系统，自动补系统依赖可能不会生效，但插件自带字体自动加载逻辑仍然有效。
 
-如果你是 **Docker / Debian / Ubuntu** 环境，除了上面的 Python 依赖，还需要补齐 Chromium 的系统运行库，否则会出现这类报错：
-
-```text
-error while loading shared libraries: libnspr4.so: cannot open shared object file
-```
-
-建议额外安装：
-
-```bash
-apt update
-apt install -y \
-  libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-  libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
-  libpangocairo-1.0-0 libpango-1.0-0 libcairo2 libxkbcommon0 libgtk-3-0
-```
-
-如果你的环境主要处理中文内容，建议再补一套中文字库，例如：
-
-```bash
-apt update
-apt install -y fonts-noto-cjk
-```
-
-`ffmpeg` 也需要安装，不然插件无法正常处理视频内容，也就无法完成视频理解与总结。
-
-安装命令（Ubuntu / Debian）：
-
-```bash
-apt update
-apt install -y ffmpeg
-```
-
-> 如果你的 AstrBot 使用虚拟环境，请在对应环境中执行 Playwright 安装命令。
+> 如果你的 AstrBot 使用虚拟环境，插件会优先使用当前 Python 解释器自动安装 `yt-dlp` / `playwright`。
 >
-> 如果 `ffmpeg` 不可用，视频下载后的抽帧与后续处理可能失败。
->
-> 如果 T2I 日志里出现 `libnspr4.so` / `libnss3.so` / `BrowserType.launch` 相关报错，优先检查系统依赖是否完整。
->
-> 如果图片已生成但中文不显示/变方块，优先检查系统中文字库是否安装，或确认插件自带字体文件是否存在于 `assets/fonts/`。
+> 如果宿主环境禁用了 `apt-get`、无 root 权限，或镜像本身不允许安装系统包，那么系统层依赖仍可能无法自动补齐。
 
 ## ⚙️ 配置说明
 

@@ -67,8 +67,8 @@
   "t2i_output": {
     "description": "启用 T2I 风格排版",
     "type": "bool",
-    "default": true,
-    "hint": "开启后输出会走更适合渲染/截图阅读的 T2I 风格短段排版；关闭则使用普通分段式总结。插件会优先尝试加载 assets/fonts/ 下自带字体。"
+    "default": false,
+    "hint": "开启后输出会走更适合渲染/截图阅读的 T2I 风格短段排版；关闭则使用普通分段式总结。开启后插件会自动尝试安装 T2I 所需依赖并优先加载 assets/fonts/ 下自带字体。"
   },
   "ffmpeg_bin": {
     "description": "ffmpeg 路径（高级）",

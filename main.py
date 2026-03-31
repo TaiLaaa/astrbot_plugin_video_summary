@@ -145,6 +145,55 @@ class VideoSummaryPlugin(Star):
                 return False, str(e)
         return False, output.strip()[-500:]
 
+    async def _ensure_apt_packages(self, packages: list[str]) -> tuple[bool, str]:
+        if not packages:
+            return True, ""
+        if shutil.which("apt-get") is None:
+            return False, "系统中不存在 apt-get，无法自动安装系统依赖"
+        missing = []
+        for pkg in packages:
+            code, _ = await self._run_subprocess("dpkg", "-s", pkg)
+            if code != 0:
+                missing.append(pkg)
+        if not missing:
+            return True, ""
+        code, output = await self._run_subprocess("apt-get", "update")
+        if code != 0:
+            return False, output.strip()[-500:]
+        env = os.environ.copy()
+        env.setdefault("DEBIAN_FRONTEND", "noninteractive")
+        proc = await asyncio.create_subprocess_exec(
+            "apt-get", "install", "-y", *missing,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            env=env,
+        )
+        out, _ = await proc.communicate()
+        text = (out or b"").decode("utf-8", errors="ignore")
+        return proc.returncode == 0, text.strip()[-800:]
+
+    async def _ensure_system_runtime_packages(self) -> tuple[bool, str]:
+        return await self._ensure_apt_packages([
+            "ffmpeg",
+            "fonts-noto-cjk",
+            "libnspr4",
+            "libnss3",
+            "libatk1.0-0",
+            "libatk-bridge2.0-0",
+            "libcups2",
+            "libxcomposite1",
+            "libxdamage1",
+            "libxfixes3",
+            "libxrandr2",
+            "libgbm1",
+            "libasound2",
+            "libpangocairo-1.0-0",
+            "libpango-1.0-0",
+            "libcairo2",
+            "libxkbcommon0",
+            "libgtk-3-0",
+        ])
+
     async def _ensure_playwright_browsers(self) -> tuple[bool, str]:
         code, output = await self._run_subprocess(self._python_executable(), "-m", "playwright", "install", "chromium")
         return code == 0, output.strip()[-500:]
@@ -165,14 +214,23 @@ class VideoSummaryPlugin(Star):
                 self._yt_dlp_module = importlib.import_module("yt_dlp")
             else:
                 errors.append(f"yt-dlp 自动安装失败: {detail}")
-            ok, detail = await self._ensure_python_package("playwright.async_api", "playwright")
-            if ok:
-                self._async_playwright_factory = importlib.import_module("playwright.async_api").async_playwright
-                browser_ok, browser_detail = await self._ensure_playwright_browsers()
-                if not browser_ok:
-                    errors.append(f"Chromium 自动安装失败: {browser_detail}")
+            if self._use_t2i_output():
+                sys_ok, sys_detail = await self._ensure_system_runtime_packages()
+                if not sys_ok:
+                    errors.append(f"系统依赖自动安装失败: {sys_detail}")
+                ok, detail = await self._ensure_python_package("playwright.async_api", "playwright")
+                if ok:
+                    self._async_playwright_factory = importlib.import_module("playwright.async_api").async_playwright
+                    browser_ok, browser_detail = await self._ensure_playwright_browsers()
+                    if not browser_ok:
+                        errors.append(f"Chromium 自动安装失败: {browser_detail}")
+                else:
+                    errors.append(f"playwright 自动安装失败: {detail}")
             else:
-                errors.append(f"playwright 自动安装失败: {detail}")
+                try:
+                    self._async_playwright_factory = importlib.import_module("playwright.async_api").async_playwright
+                except Exception:
+                    self._async_playwright_factory = None
             self._dependency_bootstrap_error = "；".join([e for e in errors if e])
             self.__class__._shared_dependency_bootstrap_done = True
 
