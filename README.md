@@ -46,6 +46,22 @@ pip install playwright
 playwright install chromium
 ```
 
+如果你是 **Docker / Debian / Ubuntu** 环境，除了上面的 Python 依赖，还需要补齐 Chromium 的系统运行库，否则会出现这类报错：
+
+```text
+error while loading shared libraries: libnspr4.so: cannot open shared object file
+```
+
+建议额外安装：
+
+```bash
+apt update
+apt install -y \
+  libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+  libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+  libpangocairo-1.0-0 libpango-1.0-0 libcairo2 libxkbcommon0 libgtk-3-0
+```
+
 `ffmpeg` 也需要安装，不然插件无法正常处理视频内容，也就无法完成视频理解与总结。
 
 安装命令（Ubuntu / Debian）：
@@ -58,6 +74,8 @@ apt install -y ffmpeg
 > 如果你的 AstrBot 使用虚拟环境，请在对应环境中执行 Playwright 安装命令。
 >
 > 如果 `ffmpeg` 不可用，视频下载后的抽帧与后续处理可能失败。
+>
+> 如果 T2I 日志里出现 `libnspr4.so` / `libnss3.so` / `BrowserType.launch` 相关报错，优先检查系统依赖是否完整。
 
 ## ⚙️ 配置说明
 
