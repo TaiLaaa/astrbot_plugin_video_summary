@@ -37,6 +37,13 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 
 ## 🖼️ T2I / Playwright 说明
 
+插件安装后：
+- **默认开启 T2I 输出**
+- 会优先自动加载 `assets/fonts/` 目录下自带的 `.ttf/.otf` 字体
+- 当前仓库已内置一套字体：`assets/fonts/loli.ttf`
+
+也就是说，**只要运行环境本身具备 Playwright / Chromium 依赖，装完插件后就会自动优先使用插件自带字体渲染**，不需要再手动改模板里的字体名。
+
 如果你需要使用 **T2I 输出**，就需要额外安装 Playwright 及 Chromium，不然相关渲染能力无法使用。
 
 安装命令：
@@ -62,6 +69,13 @@ apt install -y \
   libpangocairo-1.0-0 libpango-1.0-0 libcairo2 libxkbcommon0 libgtk-3-0
 ```
 
+如果你的环境主要处理中文内容，建议再补一套中文字库，例如：
+
+```bash
+apt update
+apt install -y fonts-noto-cjk
+```
+
 `ffmpeg` 也需要安装，不然插件无法正常处理视频内容，也就无法完成视频理解与总结。
 
 安装命令（Ubuntu / Debian）：
@@ -76,6 +90,8 @@ apt install -y ffmpeg
 > 如果 `ffmpeg` 不可用，视频下载后的抽帧与后续处理可能失败。
 >
 > 如果 T2I 日志里出现 `libnspr4.so` / `libnss3.so` / `BrowserType.launch` 相关报错，优先检查系统依赖是否完整。
+>
+> 如果图片已生成但中文不显示/变方块，优先检查系统中文字库是否安装，或确认插件自带字体文件是否存在于 `assets/fonts/`。
 
 ## ⚙️ 配置说明
 

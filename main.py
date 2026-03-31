@@ -71,43 +71,54 @@ class VideoSummaryPlugin(Star):
     def _fonts_dir(self) -> Path:
         return BASE_DIR / "assets" / "fonts"
 
-    def _bundled_font_faces_css(self) -> str:
+    def _iter_bundled_font_files(self) -> list[Path]:
         fonts_dir = self._fonts_dir()
         if not fonts_dir.exists():
-            return ""
-        rules = []
-        for name in (
+            return []
+        preferred_names = [
+            "loli.ttf",
             "Lolita-2.ttf",
             "萝莉体第二版.ttf",
             "萝莉体 第二版.ttf",
             "NotoSansSC-Regular.otf",
             "NotoSansSC-Regular.ttf",
             "SourceHanSansSC-Regular.otf",
-        ):
+            "SourceHanSansSC-Regular.ttf",
+        ]
+        seen = set()
+        files: list[Path] = []
+        for name in preferred_names:
             path = fonts_dir / name
-            if not path.exists():
+            if path.exists() and path.is_file():
+                files.append(path)
+                seen.add(path.name.lower())
+        for path in sorted(fonts_dir.iterdir()):
+            if not path.is_file():
                 continue
+            if path.suffix.lower() not in {".ttf", ".otf"}:
+                continue
+            if path.name.lower() in seen:
+                continue
+            files.append(path)
+            seen.add(path.name.lower())
+        return files
+
+    def _bundled_font_faces_css(self) -> str:
+        rules = []
+        for path in self._iter_bundled_font_files():
             family = path.stem.replace(" ", "")
+            font_format = "opentype" if path.suffix.lower() == ".otf" else "truetype"
             rules.append(
                 "@font-face {"
                 f"font-family:'{family}';"
-                f"src:url('file://{path.as_posix()}') format('truetype');"
+                f"src:url('file://{path.as_posix()}') format('{font_format}');"
                 "font-display:swap;"
                 "}"
             )
         return "\n".join(rules)
 
     def _preferred_font_stack(self) -> str:
-        custom_families = []
-        for name in (
-            "Lolita-2",
-            "萝莉体第二版",
-            "萝莉体 第二版",
-            "NotoSansSC-Regular",
-            "SourceHanSansSC-Regular",
-        ):
-            if (self._fonts_dir() / f"{name}.ttf").exists() or (self._fonts_dir() / f"{name}.otf").exists():
-                custom_families.append(f'"{name}"')
+        custom_families = [f'"{path.stem.replace(" ", "")}"' for path in self._iter_bundled_font_files()]
         fallback = ['"Heiti TC"', '"PingFang SC"', '"Microsoft YaHei"', '"Noto Sans SC"', 'sans-serif']
         return ",".join(custom_families + fallback)
 
