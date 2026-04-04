@@ -1,12 +1,12 @@
-# 🎬 AstrBot 视频链接总结插件
+# 🎬 AstrBot 哔哩哔哩视频解析插件（支持人格设置解析）
 
-让 bot 识别常见视频链接，并自动生成 AI 总结，适合群聊 / 私聊里的“发链接就解析”场景。
+让 bot 识别哔哩哔哩视频链接，并自动生成 AI 总结，适合群聊 / 私聊里的"发链接就解析"场景。
 
 ## ✨ 功能
 
 ### 1. 视频链接总结
 - 支持通过 `/视频总结 <视频链接>` 直接触发
-- 支持识别消息中的视频链接并进行总结
+- 支持识别消息中的哔哩哔哩视频链接并进行总结
 - 适合快速了解视频内容、亮点和主题
 
 ### 2. 多种触发方式
@@ -64,6 +64,30 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 >
 > 如果宿主环境禁用了 `apt-get`、无 root 权限，或镜像本身不允许安装系统包，那么系统层依赖仍可能无法自动补齐。
 
+### 🪟 Windows 用户
+
+插件在 Windows 上运行 AstrBot 时，`yt-dlp` 和 `playwright`（含 Chromium）会**自动安装**，无需手动操作。
+
+唯一需要手动处理的是 **ffmpeg**：
+
+**方式一：使用 winget 自动安装（推荐，Win10/11）**
+
+在命令提示符或 PowerShell 中运行：
+
+```powershell
+winget install Gyan.FFmpeg
+```
+
+安装完成后重启 AstrBot，插件会自动找到 ffmpeg。
+
+**方式二：手动下载**
+
+1. 前往 [https://www.gyan.dev/ffmpeg/builds/](https://www.gyan.dev/ffmpeg/builds/) 下载 `ffmpeg-release-essentials.zip`
+2. 解压后将 `bin\ffmpeg.exe` 放到任意位置，例如 `C:\ffmpeg\bin\ffmpeg.exe`
+3. 在插件配置中将 **ffmpeg 路径** 填写为该路径，例如 `C:\ffmpeg\bin\ffmpeg.exe`
+
+> 💡 Windows 系统自带中文字体，T2I 输出中文一般不会出现乱码，无需额外安装字体。
+
 ## ⚙️ 配置说明
 
 安装后在 AstrBot 的插件配置页面中设置：
@@ -80,20 +104,12 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 
 > 💡 如果你的模型支持视觉输入，插件会优先走关键帧理解；如果不支持，会自动降级为保守总结。
 
-## 🔗 当前支持链接
+## 🔗 支持的链接
 
-已内置基础识别：
+仅支持哔哩哔哩视频：
 
-- Bilibili：`bilibili.com` / `b23.tv`
-- 抖音：`douyin.com` / `iesdouyin.com` / `v.douyin.com`
-- 小红书：`xiaohongshu.com` / `xhslink.com`
-- 快手：`kuaishou.com`
-- 微博视频：`weibo.com` / `weibo.cn` / `video.weibo.com`
-- YouTube：`youtube.com` / `youtu.be`
-- 西瓜视频：`ixigua.com`
-- 百度好看：`haokan.baidu.com`
-- QQ 视频页：`qq.com/x/page/`
-- 视频直链：`.mp4` `.m3u8` `.mov` `.mkv` `.webm`
+- `bilibili.com`
+- `b23.tv`
 
 ## 💬 触发方式
 
@@ -107,6 +123,7 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 
 ```text
 /视频总结 https://www.bilibili.com/video/BV1xx411c7mD
+/视频总结 https://b23.tv/xxxxxx
 ```
 
 ### 2. 自然触发
@@ -119,10 +136,10 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 ```
 
 也支持：
-- 私聊直接发送视频链接
-- 回复一条带视频链接的消息并要求总结
+- 私聊直接发送哔哩哔哩视频链接
+- 回复一条带哔哩哔哩视频链接的消息并要求总结
 
-默认不会在群聊里对“单独发一个链接且未 @bot”的消息误触发。
+默认不会在群聊里对"单独发一个链接且未 @bot"的消息误触发。
 
 ### 3. 解析后的后续追问
 
@@ -135,13 +152,13 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 ## 🔧 工作原理
 
 ```text
-视频链接 ──→ 链接识别
-            │
-            ├── 提取视频元信息
-            ├── 下载视频
-            ├── 抽取关键帧
-            ├── 调用模型理解内容
-            └── 按人格风格输出最终总结
+哔哩哔哩链接 ──→ 链接识别
+               │
+               ├── 提取视频元信息
+               ├── 下载视频
+               ├── 抽取关键帧
+               ├── 调用模型理解内容
+               └── 按人格风格输出最终总结
 ```
 
 - **普通模式**：关键帧较少，优先快速理解
@@ -150,9 +167,8 @@ https://github.com/TaiLaaa/astrbot_plugin_video_summary
 
 ## ⚠️ 注意事项
 
-- 不是所有模型都真的支持“看视频”
+- 不是所有模型都真的支持"看视频"
 - 视觉能力弱或不支持视觉的模型，会走降级逻辑
-- 视频平台能否正常下载，会直接影响总结效果
 - ffmpeg / 浏览器环境异常时，关键帧链路可能失败
 - 如果启用 T2I 输出但未安装 Playwright，相关渲染能力将不可用
 
@@ -176,7 +192,7 @@ astrbot_plugin_video_summary/
 ## 🏷️ 插件信息
 
 - 插件名：`astrbot_plugin_video_summary`
-- 显示名：`视频链接总结`
+- 显示名：`哔哩哔哩视频解析`
 
 ## 🚀 仓库
 
